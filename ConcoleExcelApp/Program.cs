@@ -13,6 +13,8 @@ namespace ConcoleExcelApp
             var columns = int.Parse(Console.ReadLine());
 
             var table = new Table(rows, columns);
+
+           // table.ValidateFormula("1A");
             table.PopulateTable();
             table.CalculateResult();
             table.DisplayTable(true);
