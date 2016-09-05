@@ -1,19 +1,33 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace ConcoleExcelApp
 {
     class Program
     {
-        [SuppressMessage("ReSharper", "UnusedParameter.Local")]
         static void Main(string[] args)
         {
-            Console.WriteLine("Pleas, enter table size: ");
-            Console.Write("Enter number of rows: ");
+            //Console.WriteLine("Pleas, enter table size: ");
+            //Console.Write("Enter number of rows: ");
+
+            var rowsColumns = Console.ReadLine();
+
+            // Split user input string into seprate strings that correspond to row cells
+            while (string.IsNullOrWhiteSpace(rowsColumns))
+            {
+                rowsColumns = Console.ReadLine();
+            }
 
             int rows;
+            int columns;
 
-            while (!int.TryParse(Console.ReadLine(), out rows))
+            var rowColNum = rowsColumns.Split(' ');
+            while (rowColNum.Length < 2 || rowColNum.Length > 2 | !int.TryParse(rowColNum[0], out rows) | !int.TryParse(rowColNum[1], out columns))
+            {
+                rowsColumns = Console.ReadLine();
+                if (rowsColumns != null) rowColNum = rowsColumns.Split(' ');
+            }
+
+            /*while (!int.TryParse(Console.ReadLine(), out rows))
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Must be an integer");
@@ -30,7 +44,7 @@ namespace ConcoleExcelApp
                 Console.WriteLine("Must be an integer");
                 Console.ResetColor();
                 Console.Write("Enter number of columns: ");
-            }
+            }*/
 
             var table = new Table(rows, columns);
 
