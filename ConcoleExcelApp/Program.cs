@@ -21,6 +21,7 @@ namespace ConcoleExcelApp
                 Console.Write("Enter number of rows: ");
             }
 
+            Console.Write("Enter number of columms: ");
             int columns;
 
             while (!int.TryParse(Console.ReadLine(), out columns))

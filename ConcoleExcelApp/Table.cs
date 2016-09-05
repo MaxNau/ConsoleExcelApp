@@ -17,7 +17,7 @@ namespace ConcoleExcelApp
         // inner class that holds the table
         private class ExcelTable
         {
-            private const int ColumnIndocator = 0;
+            private const int ColumnIndicator = 0;
             private const int RowIndicator = 1;
 
             private readonly Cell[,] _table;
@@ -34,7 +34,7 @@ namespace ConcoleExcelApp
             }
 
             // Returns number of columns.
-            public int GetColumnLength => _table.GetLength(ColumnIndocator);
+            public int GetColumnLength => _table.GetLength(ColumnIndicator);
 
             // Returns number of rows.
             public int GetRowLength => _table.GetLength(RowIndicator);
@@ -62,7 +62,8 @@ namespace ConcoleExcelApp
                         // else triet cell as empty
                         if (cellData.Length > row)
                         {
-                            _excelTable[col, row] = CheckCellDataType(cellData[row]);
+                            //_excelTable[col, row] = CheckCellDataType(cellData[row]);
+                            _excelTable[col, row] = ValidateUserInput(cellData[row]);
                         }
                         else
                             _excelTable[col, row] = CheckCellDataType("");
@@ -78,7 +79,7 @@ namespace ConcoleExcelApp
         }
 
         // Determines the data type of the cell
-        private Cell CheckCellDataType(string data)
+        /*private Cell CheckCellDataType(string data)
         {
             Cell cell = new Cell(data);
 
@@ -92,29 +93,64 @@ namespace ConcoleExcelApp
             }
 
             // Check if cell contains digit, formula, text or cell contains invalid user input
-            if (int.TryParse(data, out iresult))
+            string error;
+
+            if (!ValidateUserInput(cell, out error))
             {
-                cell.DataType = CellDataType.Numeric;
-            }
-            else if (data[0] == '=')
-            {
-                cell.DataType = CellDataType.Formula;
-            }
-            else if (data[0] == '\'')
-            {
-                cell.DataType = CellDataType.Text;
+                cell.DataType = CellDataType.Error;
+                return cell;
             }
             else
             {
-                string error;
-
-                if (!ValidateUserInput(cell, out error))
+                if (int.TryParse(data, out iresult))
                 {
-                    cell.DataType = CellDataType.Error;
-                    return cell;
+                    cell.DataType = CellDataType.Numeric;
+                }
+                else if (data[0] == '=')
+                {
+                    cell.DataType = CellDataType.Formula;
+                }
+                else if (data[0] == '\'')
+                {
+                    cell.DataType = CellDataType.Text;
                 }
             }
-            
+
+            return cell;
+        }*/
+
+        private Cell CheckCellDataType(string data)
+        {
+            Cell cell = new Cell(data);
+
+            // Check if cell is empty
+            if (string.IsNullOrEmpty(data))
+            {
+                cell.DataType = CellDataType.Empty;
+                return cell;
+            }
+
+            // Check if cell contains digit, formula, text or cell contains invalid user input
+                int iresult;
+
+                if (int.TryParse(data, out iresult))
+                {
+                    cell.DataType = CellDataType.Numeric;
+                }
+                else if (data[0] != '=' & data[0] != '\'')
+                {
+                    cell.DataType = CellDataType.Error;
+                    cell.Data = "#Invalid input";
+                }
+
+                if (data[0] == '=')
+                {
+                    cell.DataType = CellDataType.Formula;
+                }
+                else if (data[0] == '\'')
+                {
+                    cell.DataType = CellDataType.Text;
+                }
 
             return cell;
         }
@@ -162,8 +198,10 @@ namespace ConcoleExcelApp
                 {
                     if (_excelTable[c, r].Index == index)
                     {
-                        if (_excelTable[c, r].DataType == CellDataType.Numeric || _excelTable[c, r].DataType == CellDataType.Text)
+                        if (_excelTable[c, r].DataType != CellDataType.Formula)
                         {
+                            //_excelTable[c, r].Data = _excelTable[c, r].Data.Substring(1);
+                            //_excelTable[c, r] = CheckCellDataType(_excelTable[c, r].Data);
                             return _excelTable[c, r].Data;
                         }
                         else if (_excelTable[c, r].DataType == CellDataType.Formula)
@@ -176,18 +214,19 @@ namespace ConcoleExcelApp
                             }
                             else
                             {
-                                string[] indexes = _excelTable[c, r].Data.Split('+', '-', '/', '*', '=');
+                              /*  string[] indexes = _excelTable[c, r].Data.Split('+', '-', '/', '*', '=');
                                 foreach (string ind in indexes)
                                 {
                                     if (ind != "")
                                     {
-                                        if (char.IsLetter(ind[0]))
-                                        {
+                                        //if (char.IsLetter(ind[0]))
+                                       // {
                                             _excelTable[c, r].Data = _excelTable[c, r].Data.Replace(ind, (string)SearchIndex(ind));
                                             CheckCellDataType(_excelTable[c, r].Data);
-                                        }
+                                       // }
                                     }
-                                }
+                                }*/
+                                FindAndReplaceFormulaLinks(_excelTable[c, r]);
                             }
                         }
                     }
@@ -241,14 +280,13 @@ namespace ConcoleExcelApp
             string[] indexes = cell.Data.Split('+', '-', '/', '*', '=');
             foreach (string index in indexes)
             {
-                if (index != "")
+                if (index != "" & IsValidIndex(index))
                 {
-                    if (char.IsLetter(index[0]))
-                    {
                         cell.Data = cell.Data.Replace(index, (string)SearchIndex(index));
-                        if (cell.DataType == CellDataType.Text || cell.DataType == CellDataType.Numeric)
-                            cell.Data = cell.Data.Substring(1);
-                    }
+                        CheckCellDataType(cell.Data);
+                    if (cell.DataType == CellDataType.Text || cell.DataType == CellDataType.Numeric 
+                       || cell.DataType == CellDataType.Error)
+                          cell.Data = cell.Data.Substring(1);
                 }
             }
         }
@@ -283,21 +321,53 @@ namespace ConcoleExcelApp
         }
 
         // Validates user input
-        private bool ValidateUserInput(Cell cell, out string error)
+        /* private bool ValidateUserInput(Cell cell, out string error)
+         {
+             error = "";
+
+             if (cell.DataType == CellDataType.Formula)
+             {
+                 return ValidateFormula(cell.Data.Substring(1).Split('+', '-', '/', '*'), out error);
+             }
+             else if (cell.DataType == CellDataType.Numeric)
+             {
+                 return IsDigit(cell.Data);
+             }
+             else if (cell.DataType == CellDataType.Text)
+             {
+
+             }
+
+             return false;
+         }*/
+
+        private Cell ValidateUserInput(string data)
         {
-            error = "";
+            Cell cell;
+            cell = CheckCellDataType(data);
 
             if (cell.DataType == CellDataType.Formula)
             {
-                return ValidateFormula(cell.Data.Substring(1).Split('+', '-', '/', '*'), out error);
+                string error;
+
+                if (!ValidateFormula(cell.Data.Substring(1).Split('+', '-', '/', '*'), out error))
+                {
+                    cell.Data = error;
+                    cell.DataType = CellDataType.Error;
+                }
             }
             else if (cell.DataType == CellDataType.Numeric)
             {
-                return IsDigit(cell.Data);
+                if (!IsDigit(cell.Data))
+                {
+                    cell.Data = "#Invalid data in cell";
+                    cell.DataType = CellDataType.Error;
+                }
             }
 
-            return false;
+            return cell;
         }
+
 
         // Validates formula
         private bool ValidateFormula(string [] formula, out string error)
@@ -335,7 +405,10 @@ namespace ConcoleExcelApp
         // Checks if link contains valid index
         private bool IsValidIndex(string index)
         {
-            return char.IsLetter(index[0]);
+            if (!string.IsNullOrEmpty(index))
+                return char.IsLetter(index[0]);
+            else
+                return false;
         }
 
         // Validates link indexes and arguments
